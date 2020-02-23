@@ -1,0 +1,8 @@
+type Mutation {
+  # createUser is to create a user.
+  createUser(input: UserInput!): User!
+  # createTodo is to create a todo
+  createTodo(input: TodoInput!): Todo!
+  # updateTodo is to update a todo
+  updateTodo(input: TodoInput!): Todo!
+}
