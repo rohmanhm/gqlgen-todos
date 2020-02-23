@@ -39,7 +39,7 @@ func (r *Mutation) Login(ctx context.Context, input model.LoginUserInput) (*mode
 
 // Users query resolver.
 func (r *Query) Users(ctx context.Context) ([]*model.User, error) {
-	uIter := firebase.Client.Users(context.Background(), "")
+	uIter := firebase.Client.Users(ctx, "")
 	for {
 		u, err := uIter.Next()
 		if err == iterator.Done {
@@ -62,7 +62,7 @@ func (r *Query) Users(ctx context.Context) ([]*model.User, error) {
 
 // User query resolver.
 func (r *Query) User(ctx context.Context, input *model.UserInput) (*model.User, error) {
-	u, err := firebase.Client.GetUserByEmail(context.Background(), input.Email)
+	u, err := firebase.Client.GetUserByEmail(ctx, input.Email)
 	if err != nil {
 		log.Printf("could not get user: %v", err)
 		return nil, err
