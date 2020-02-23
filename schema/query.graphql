@@ -1,5 +1,5 @@
 type Query {
   todos: [Todo!]!
   users: [User!]!
-  user: User!
+  user(input: UserInput): User!
 }

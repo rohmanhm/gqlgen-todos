@@ -10,7 +10,11 @@ import (
 	"github.com/rohmanhm/gqlgen-todos/graph/model"
 )
 
-func (r *mutationResolver) CreateUser(ctx context.Context, input model.UserInput) (*model.User, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUserInput) (*model.User, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) Login(ctx context.Context, input model.LoginUserInput) (*model.User, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

@@ -2,6 +2,17 @@
 
 package model
 
+type CreateUserInput struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginUserInput struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type Todo struct {
 	ID     string `json:"id"`
 	Text   string `json:"text"`
@@ -15,14 +26,11 @@ type TodoInput struct {
 }
 
 type User struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
 }
 
 type UserInput struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email string `json:"email"`
 }

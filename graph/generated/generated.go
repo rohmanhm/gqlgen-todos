@@ -45,13 +45,14 @@ type DirectiveRoot struct {
 type ComplexityRoot struct {
 	Mutation struct {
 		CreateTodo func(childComplexity int, input model.TodoInput) int
-		CreateUser func(childComplexity int, input model.UserInput) int
+		CreateUser func(childComplexity int, input model.CreateUserInput) int
+		Login      func(childComplexity int, input model.LoginUserInput) int
 		UpdateTodo func(childComplexity int, input model.TodoInput) int
 	}
 
 	Query struct {
 		Todos func(childComplexity int) int
-		User  func(childComplexity int) int
+		User  func(childComplexity int, input *model.UserInput) int
 		Users func(childComplexity int) int
 	}
 
@@ -63,22 +64,22 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
-		Email    func(childComplexity int) int
-		ID       func(childComplexity int) int
-		Name     func(childComplexity int) int
-		Password func(childComplexity int) int
+		Email func(childComplexity int) int
+		ID    func(childComplexity int) int
+		Name  func(childComplexity int) int
 	}
 }
 
 type MutationResolver interface {
-	CreateUser(ctx context.Context, input model.UserInput) (*model.User, error)
+	CreateUser(ctx context.Context, input model.CreateUserInput) (*model.User, error)
+	Login(ctx context.Context, input model.LoginUserInput) (*model.User, error)
 	CreateTodo(ctx context.Context, input model.TodoInput) (*model.Todo, error)
 	UpdateTodo(ctx context.Context, input model.TodoInput) (*model.Todo, error)
 }
 type QueryResolver interface {
 	Todos(ctx context.Context) ([]*model.Todo, error)
 	Users(ctx context.Context) ([]*model.User, error)
-	User(ctx context.Context) (*model.User, error)
+	User(ctx context.Context, input *model.UserInput) (*model.User, error)
 }
 
 type executableSchema struct {
@@ -118,7 +119,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(model.UserInput)), true
+		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(model.CreateUserInput)), true
+
+	case "Mutation.login":
+		if e.complexity.Mutation.Login == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_login_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.Login(childComplexity, args["input"].(model.LoginUserInput)), true
 
 	case "Mutation.updateTodo":
 		if e.complexity.Mutation.UpdateTodo == nil {
@@ -144,7 +157,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			break
 		}
 
-		return e.complexity.Query.User(childComplexity), true
+		args, err := ec.field_Query_user_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.User(childComplexity, args["input"].(*model.UserInput)), true
 
 	case "Query.users":
 		if e.complexity.Query.Users == nil {
@@ -201,13 +219,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Name(childComplexity), true
-
-	case "User.password":
-		if e.complexity.User.Password == nil {
-			break
-		}
-
-		return e.complexity.User.Password(childComplexity), true
 
 	}
 	return 0, false
@@ -275,7 +286,9 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var sources = []*ast.Source{
 	&ast.Source{Name: "schema/mutation.graphql", Input: `type Mutation {
   # createUser is to create a user.
-  createUser(input: UserInput!): User!
+  createUser(input: CreateUserInput!): User!
+  # login to authenticate the user.
+  login(input: LoginUserInput!): User!
   # createTodo is to create a todo
   createTodo(input: TodoInput!): Todo!
   # updateTodo is to update a todo
@@ -285,7 +298,7 @@ var sources = []*ast.Source{
 	&ast.Source{Name: "schema/query.graphql", Input: `type Query {
   todos: [Todo!]!
   users: [User!]!
-  user: User!
+  user(input: UserInput): User!
 }
 `, BuiltIn: false},
 	&ast.Source{Name: "schema/todo.graphql", Input: `type Todo {
@@ -303,15 +316,22 @@ input TodoInput {
   id: ID!
   name: String!
   email: String!
-  password: String!
 }
 
 input UserInput {
+  email: String!
+}
+
+input CreateUserInput {
   name: String!
   email: String!
   password: String!
 }
-`, BuiltIn: false},
+
+input LoginUserInput {
+  email: String!
+  password: String!
+}`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -336,9 +356,23 @@ func (ec *executionContext) field_Mutation_createTodo_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.UserInput
+	var arg0 model.CreateUserInput
 	if tmp, ok := rawArgs["input"]; ok {
-		arg0, err = ec.unmarshalNUserInput2githubᚗcomᚋrohmanhmᚋgqlgenᚑtodosᚋgraphᚋmodelᚐUserInput(ctx, tmp)
+		arg0, err = ec.unmarshalNCreateUserInput2githubᚗcomᚋrohmanhmᚋgqlgenᚑtodosᚋgraphᚋmodelᚐCreateUserInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.LoginUserInput
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNLoginUserInput2githubᚗcomᚋrohmanhmᚋgqlgenᚑtodosᚋgraphᚋmodelᚐLoginUserInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -372,6 +406,20 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.UserInput
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalOUserInput2ᚖgithubᚗcomᚋrohmanhmᚋgqlgenᚑtodosᚋgraphᚋmodelᚐUserInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -435,7 +483,48 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateUser(rctx, args["input"].(model.UserInput))
+		return ec.resolvers.Mutation().CreateUser(rctx, args["input"].(model.CreateUserInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖgithubᚗcomᚋrohmanhmᚋgqlgenᚑtodosᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_login(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Mutation",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_login_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().Login(rctx, args["input"].(model.LoginUserInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -617,9 +706,16 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_user_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().User(rctx)
+		return ec.resolvers.Query().User(rctx, args["input"].(*model.UserInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -927,40 +1023,6 @@ func (ec *executionContext) _User_email(ctx context.Context, field graphql.Colle
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Email, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _User_password(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "User",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Password, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2032,6 +2094,60 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputCreateUserInput(ctx context.Context, obj interface{}) (model.CreateUserInput, error) {
+	var it model.CreateUserInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "name":
+			var err error
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "email":
+			var err error
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "password":
+			var err error
+			it.Password, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputLoginUserInput(ctx context.Context, obj interface{}) (model.LoginUserInput, error) {
+	var it model.LoginUserInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "email":
+			var err error
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "password":
+			var err error
+			it.Password, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputTodoInput(ctx context.Context, obj interface{}) (model.TodoInput, error) {
 	var it model.TodoInput
 	var asMap = obj.(map[string]interface{})
@@ -2062,21 +2178,9 @@ func (ec *executionContext) unmarshalInputUserInput(ctx context.Context, obj int
 
 	for k, v := range asMap {
 		switch k {
-		case "name":
-			var err error
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
 		case "email":
 			var err error
 			it.Email, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "password":
-			var err error
-			it.Password, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -2111,6 +2215,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "createUser":
 			out.Values[i] = ec._Mutation_createUser(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "login":
+			out.Values[i] = ec._Mutation_login(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2272,11 +2381,6 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "email":
 			out.Values[i] = ec._User_email(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "password":
-			out.Values[i] = ec._User_password(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2550,6 +2654,10 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) unmarshalNCreateUserInput2githubᚗcomᚋrohmanhmᚋgqlgenᚑtodosᚋgraphᚋmodelᚐCreateUserInput(ctx context.Context, v interface{}) (model.CreateUserInput, error) {
+	return ec.unmarshalInputCreateUserInput(ctx, v)
+}
+
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
 	return graphql.UnmarshalID(v)
 }
@@ -2562,6 +2670,10 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNLoginUserInput2githubᚗcomᚋrohmanhmᚋgqlgenᚑtodosᚋgraphᚋmodelᚐLoginUserInput(ctx context.Context, v interface{}) (model.LoginUserInput, error) {
+	return ec.unmarshalInputLoginUserInput(ctx, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -2682,10 +2794,6 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋrohmanhmᚋgqlgenᚑt
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNUserInput2githubᚗcomᚋrohmanhmᚋgqlgenᚑtodosᚋgraphᚋmodelᚐUserInput(ctx context.Context, v interface{}) (model.UserInput, error) {
-	return ec.unmarshalInputUserInput(ctx, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -2958,6 +3066,18 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return ec.marshalOString2string(ctx, sel, *v)
+}
+
+func (ec *executionContext) unmarshalOUserInput2githubᚗcomᚋrohmanhmᚋgqlgenᚑtodosᚋgraphᚋmodelᚐUserInput(ctx context.Context, v interface{}) (model.UserInput, error) {
+	return ec.unmarshalInputUserInput(ctx, v)
+}
+
+func (ec *executionContext) unmarshalOUserInput2ᚖgithubᚗcomᚋrohmanhmᚋgqlgenᚑtodosᚋgraphᚋmodelᚐUserInput(ctx context.Context, v interface{}) (*model.UserInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalOUserInput2githubᚗcomᚋrohmanhmᚋgqlgenᚑtodosᚋgraphᚋmodelᚐUserInput(ctx, v)
+	return &res, err
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

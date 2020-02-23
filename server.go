@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/joho/godotenv"
+	_ "github.com/rohmanhm/gqlgen-todos/firebase"
 	"github.com/rohmanhm/gqlgen-todos/graph/generated"
 	"github.com/rohmanhm/gqlgen-todos/resolver"
 )
@@ -14,6 +17,11 @@ import (
 const defaultPort = "8080"
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		panic(fmt.Errorf("could not read the environment: %v", err))
+	}
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort

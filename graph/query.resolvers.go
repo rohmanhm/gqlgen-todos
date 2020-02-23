@@ -18,7 +18,7 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) User(ctx context.Context) (*model.User, error) {
+func (r *queryResolver) User(ctx context.Context, input *model.UserInput) (*model.User, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
